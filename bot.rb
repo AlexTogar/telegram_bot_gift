@@ -28,5 +28,7 @@ alex_chat_id = 479_039_553
     # end
 
     Telegram::Bot::Client.run(token) do |bot|
-        bot.api.send_message(chat_id: alex_chat_id, text: 'привет')
+        bot.api.send_message(chat_id: alex_chat_id, text: "привет, сейчас: #{Time.now}")
     end
+
+    sleep(10)
