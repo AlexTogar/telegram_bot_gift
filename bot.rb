@@ -13,7 +13,7 @@ require 'nokogiri'
 require 'telegram/bot'
 
 
-token = "839130442:AAECf-LcETBUyNAy26jHmrt_BW_d5qUT938"
+token = ENV["bubu_token"]
 alex_chat_id = 479_039_553
 
     Telegram::Bot::Client.run(token) do |bot|
