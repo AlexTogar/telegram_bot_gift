@@ -2,6 +2,7 @@
 # -> gem install activesupport
 # -> gem install nokogiri
 # -> gem install unicode
+# -> gem install redis
 require 'active_support/all'
 require 'date'
 require 'uri'
@@ -36,26 +37,72 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 when "/начать"
                     if REDIS.GET("started").to_i == 0 then
                         REDIS.set("started", 1)
-                        bot.api.send_message(chat_id: chat_id, text: "Начнем! укажи текущие значения денежных сумм на обязательные (x) и не обязательные вещи (y) c помощью команды /обновить x y")
-                        bot.api.send_message(chat_id: chat_id, text: "Кроме этого ты можешь добавлять и отнимать суммы из выбранной катеогории с помощью команд ")
+                        bot.api.send_message(chat_id: chat_id, text: "Начнем! укажи текущие значения денежных сумм на обязательные (x) и не обязательные вещи (y) c помощью команды 'обновить x y'")
+                        bot.api.send_message(chat_id: chat_id, text: "Кроме этого ты можешь добавлять и отнимать суммы из выбранной катеогории с помощью команд типа 'o +5000' или 'н -1000' (что значит добавить к обязат. 5000 и отнять от необязат. 1000 соответственно) ")
+                        bot.api.send_message(chat_id: chat_id, text: "Еще ты можешь обновить значения категорий отдельно с помощью команд типа 'обновить о 5000', что установит категории обязат. значение 5000")
+                        bot.api.send_message(chat_id: chat_id, text: "Получить текущие значения денег ты можешь с помощью команды /вывести, установить значения в 0 ты можешь с помощью команды /очистить (используй символ / на нижней панели чата со мной (ботом)")
                     else
                         bot.api.send_message(chat_id: chat_id, text: "Работа уже начата! Ты можешь указать текущие значения денежных сумм для каждой категории с помощью соответствующих команд")
                     end
                 when "/очистить"
-                when /обновить [0-9]* [0-9]*/
-                    
+                    REDIS.set("mandatory", 0)
+                    REDIS.set("optional", 0)
+                    bot.api.send_message(chat_id: chat_id, text: "Обе категории сброшены в 0, используйте /вывести, чтобы в этом убедиться")
+                when "/вывести"
+                    bot.api.send_message(chat_id: chat_id, text: "о: #{REDIS.get("mandatory")}\nн: #{REDIS.get("optional")}")
+                #обновить 5000 3000 - пример команды
+                when /обновить [0-9]{1,} [0-9]{1,}/
                     mandatory = message.text.split(" ")[1].to_i
                     optional = message.text.split(" ")[2].to_i
                     #Добавление элемета в лист состояний (обязательное - не обязательное - дата)
-                    REDIS.rpush("state_list", "#{mandatory} #{optional} #{Date.today.strftime("%d-%m-%y")}")
                     REDIS.set("mandatory", mandatory)
                     REDIS.set("optional", optional)
-                when /о +- надо как-то решить [0-9]*/
-                    
-                when /н +- надо как-то решить [0-9]*/
-                
+                    bot.api.send_message(chat_id: chat_id, text: "Значения обновлены")
+                    REDIS.rpush("state_list", "#{mandatory} #{optional} #{Date.today.strftime("%d-%m-%y")}")
+                #обновить о 5000 - пример команды
+                when /обновить о [0-9]{1,}/
+                    mandatory = message.text.split(" ")[2].to_i
+                    REDIS.set("mandatory", mandatory)
+                    bot.api.send_message(chat_id: chat_id, text: "о установлена в #{mandatory}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+                #обновить н 3000 - пример команды
+                when /обновить н [0-9]{1,}/
+                    optional = message.text.split(" ")[2].to_i
+                    REDIS.set("optional", optional)
+                    bot.api.send_message(chat_id: chat_id, text: "н установлена в #{optional}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+                #о +5000 - пример команды
+                when /о [\+\-]{1}[0-9]{1,}/
+                    delta_mandatory = message.text.split(" ")[2][1..-1].to_i
+                    case message.text.split(" ")[2][1]
+                    when "+"
+                        REDIS.set("mandatory", REDIS.get("mandatory").to_i + delta_mandatory)
+                        bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}")
+                    when "-"
+                        REDIS.set("mandatory", REDIS.get("mandatory").to_i - delta_mandatory)
+                        bot.api.send_message(chat_id: chat_id, text: "о уменьшен на #{delta_mandatory}")
+                    else
+                        bot.api.send_message(chat_id: chat_id, text: "ошибка в запросе")
+                    end
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+                #н -3000 - пример команды
+                when /н [\+\-]{1}[0-9]{1,}/
+                    delta_optional = message.text.split(" ")[2][1..-1].to_i
+                    case message.text.split(" ")[2][1]
+                    when "+"
+                        REDIS.set("optional", REDIS.get("optional").to_i + delta_optional)
+                        bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}")
+                    when "-"
+                        REDIS.set("optional", REDIS.get("optional").to_i - delta_optional)
+                        bot.api.send_message(chat_id: chat_id, text: "н уменьшен на #{delta_optional}")
+                    else
+                        bot.api.send_message(chat_id: chat_id, text: "ошибка в запросе")
+                    end
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+                when "/flushall"
+                    REDIS.flushall
                 when "/напомнить команды"
-                    bot.api.send_message(chat_id: chat_id, text: "обновить x y - обновить значения суммы на обязательные траты (х) и на не обязательные траты (у)\n")
+                    bot.api.send_message(chat_id: chat_id, text: "обновить 100 200 - обновить значения суммы на обязательные траты (100р) и на не обязательные траты (200р)\nобновить о 100 - обновить значение категории о на 100\nобновить н 200 - обновить значение категории н на 200\nо +5000 - увеличить значение категории о на 5000р (доход)\nн -200 - уменьшить значение категории н на 200 (трата)")
                 else
                     bot.api.send_message(chat_id: chat_id, text: "Не понятно, проверь запрос, в нем что-то не так")
                 end
