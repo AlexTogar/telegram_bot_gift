@@ -37,6 +37,9 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 when "/начать"
                     if REDIS.GET("started").to_i == 0 then
                         REDIS.set("started", 1)
+                        #установка категорий по умолчинаю и в 0
+                        REDIS.set("mandatory", 0)
+                        REDIS.set("optional", 0)
                         bot.api.send_message(chat_id: chat_id, text: "Начнем! укажи текущие значения денежных сумм на обязательные (x) и не обязательные вещи (y) c помощью команды 'обновить x y'")
                         bot.api.send_message(chat_id: chat_id, text: "Кроме этого ты можешь добавлять и отнимать суммы из выбранной катеогории с помощью команд типа 'o +5000' или 'н -1000' (что значит добавить к обязат. 5000 и отнять от необязат. 1000 соответственно) ")
                         bot.api.send_message(chat_id: chat_id, text: "Еще ты можешь обновить значения категорий отдельно с помощью команд типа 'обновить о 5000', что установит категории обязат. значение 5000")
@@ -74,7 +77,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 #о +5000 - пример команды
                 when /о [\+\-]{1}[0-9]{1,}/
                     delta_mandatory = message.text.split(" ")[1][1..-1].to_i
-                    case message.text.split(" ")[1][1]
+                    case message.text.split(" ")[1][0]
                     when "+"
                         REDIS.set("mandatory", REDIS.get("mandatory").to_i + delta_mandatory)
                         bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}")
@@ -88,7 +91,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 #н -3000 - пример команды
                 when /н [\+\-]{1}[0-9]{1,}/
                     delta_optional = message.text.split(" ")[1][1..-1].to_i
-                    case message.text.split(" ")[1][1]
+                    case message.text.split(" ")[1][0]
                     when "+"
                         REDIS.set("optional", REDIS.get("optional").to_i + delta_optional)
                         bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}")
