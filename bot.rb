@@ -31,7 +31,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             #Обработка обращения от Тани
             if chat_id == tanya_chat_id or chat_id == alex_chat_id then
                 #Список команд
-                case message.text
+                case message.text.downcase
                 when "/start"
                     if REDIS.GET("started").to_i == 0 then
                         REDIS.set("started", 1)
