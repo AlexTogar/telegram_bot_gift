@@ -101,17 +101,17 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     case message.text.split(" ")[1][0]
                     when "+"
                         REDIS.set("mandatory", REDIS.get("mandatory").to_i + delta_mandatory)
-                        bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}р")
+                        bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}р\nо: #{REDIS.get("mandatory")}")
                     when "-"
                         remains = REDIS.get("mandatory").to_i - delta_mandatory
-                        if remains > 0 then
+                        if remains >= 0 then
                             REDIS.set("mandatory", REDIS.get("mandatory").to_i - delta_mandatory)
-                            bot.api.send_message(chat_id: chat_id, text: "о уменьшен на #{delta_mandatory}р")
+                            bot.api.send_message(chat_id: chat_id, text: "о уменьшен на #{delta_mandatory}р\nо: #{REDIS.get("mandatory")}")
                         else
-                            bot.api.send_message(chat_id: chat_id, text: "у тебя не хватает #{remains.abs}р для совершения этой транзакции")
+                            bot.api.send_message(chat_id: chat_id, text: "У тебя всего #{REDIS.get("mandatory")}р, не хватает #{remains.abs}р для совершения этой транзакции")
                         end
                     else
-                        bot.api.send_message(chat_id: chat_id, text: "ошибка в запросе")
+                        bot.api.send_message(chat_id: chat_id, text: "Ошибка в запросе")
                     end
                     REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
 
@@ -122,14 +122,14 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     case message.text.split(" ")[1][0]
                     when "+"
                         REDIS.set("optional", REDIS.get("optional").to_i + delta_optional)
-                        bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}р")
+                        bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}р\nн: #{REDIS.get("optional")}")
                     when "-"
                         remains = REDIS.get("optional").to_i - delta_optional
-                        if remains > 0 then
+                        if remains >= 0 then
                             REDIS.set("optional", REDIS.get("optional").to_i - delta_optional)
-                            bot.api.send_message(chat_id: chat_id, text: "н уменьшен на #{delta_optional}р")
+                            bot.api.send_message(chat_id: chat_id, text: "н уменьшен на #{delta_optional}р\nн: #{REDIS.get("optional")}")
                         else
-                            bot.api.send_message(chat_id: chat_id, text: "у тебя не хватает #{remains.abs}р для совершения этой транзакции")
+                            bot.api.send_message(chat_id: chat_id, text: "у тебя всего #{REDIS.get("optional")}р, не хватает #{remains.abs}р для совершения этой транзакции")
                         end
                     else
                         bot.api.send_message(chat_id: chat_id, text: "ошибка в запросе")
