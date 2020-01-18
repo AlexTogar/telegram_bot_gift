@@ -48,7 +48,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     else
                         bot.api.send_message(chat_id: chat_id, text: "Работа уже начата! Ты можешь указать текущие значения денежных сумм для каждой категории с помощью соответствующих команд")
                     end
-                    REDIS.rpush("state_list", "#{mandatory} #{optional} #{Date.today.strftime("%d-%m-%y")}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
 
 
                 when "/clear"
