@@ -73,8 +73,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
                 #о +5000 - пример команды
                 when /о [\+\-]{1}[0-9]{1,}/
-                    delta_mandatory = message.text.split(" ")[2][1..-1].to_i
-                    case message.text.split(" ")[2][1]
+                    delta_mandatory = message.text.split(" ")[1][1..-1].to_i
+                    case message.text.split(" ")[1][1]
                     when "+"
                         REDIS.set("mandatory", REDIS.get("mandatory").to_i + delta_mandatory)
                         bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}")
@@ -87,8 +87,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
                 #н -3000 - пример команды
                 when /н [\+\-]{1}[0-9]{1,}/
-                    delta_optional = message.text.split(" ")[2][1..-1].to_i
-                    case message.text.split(" ")[2][1]
+                    delta_optional = message.text.split(" ")[1][1..-1].to_i
+                    case message.text.split(" ")[1][1]
                     when "+"
                         REDIS.set("optional", REDIS.get("optional").to_i + delta_optional)
                         bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}")
