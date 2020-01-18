@@ -112,9 +112,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 last_name = message.forward_from.last_name
                 bot.api.send_message(
                     chat_id: alex_chat_id, 
-                    text: "Пользователь #{first_name} #{last_name}, chat_id: #{message.chat.id} написал боту Bubu: #{message.text}"
+                    text: "Пользователь #{first_name} #{last_name}, chat_id: #{message.chat.id} написал боту Bubu: #{message.text}")
                     REDIS.incr("messages_from_unknown")
-                )
             end
         end
     end
