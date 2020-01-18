@@ -18,8 +18,6 @@ require 'redis'
 token = ENV["bubu_token"]
 alex_chat_id = 479_039_553
 tanya_chat_id = 223_795_744
-# Обязательное и не обязательное
-categories = {:mandatory => 0, :optional => 0}
 
 # Подключение к redis
 uri =  URI.parse(ENV["REDISTOGO_URL"])
@@ -31,7 +29,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             #Получение чата
             chat_id = message.chat.id
             #Обработка обращения от Тани
-            if chat_id == alex_chat_id then
+            if chat_id == tanya_chat_id or chat_id == alex_chat_id then
                 #Список команд
                 case message.text
                 when "/start"
