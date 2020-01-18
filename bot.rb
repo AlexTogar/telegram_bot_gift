@@ -55,7 +55,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     REDIS.set("mandatory", 0)
                     REDIS.set("optional", 0)
                     bot.api.send_message(chat_id: chat_id, text: "Обе категории сброшены в 0, используйте /show, чтобы в этом убедиться")
-                    REDIS.rpush("state_list", "#{mandatory} #{optional} #{Date.today.strftime("%d-%m-%y")}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
 
                 when "/show"
                     bot.api.send_message(chat_id: chat_id, text: "о: #{REDIS.get("mandatory")}\nн: #{REDIS.get("optional")}")
@@ -76,7 +76,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                     REDIS.set("mandatory", mandatory)
                     REDIS.set("optional", optional)
                     bot.api.send_message(chat_id: chat_id, text: "Значения обновлены")
-                    REDIS.rpush("state_list", "#{mandatory} #{optional} #{Date.today.strftime("%d-%m-%y")}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
 
 
                 #обновить о 5000 - пример команды
