@@ -58,7 +58,7 @@ Telegram::Bot::Client.run(token) do |bot|
       # обновить список
       when '/update'
         bot.api.send_message(chat_id: chat_id, text: 'write your new list down below')
-        REDIS.set("status:#{chat_id}", 3)
+        REDIS.set("status:#{chat_id}", '3')
       # вывести список
       when '/list'
         list_message = REDIS.lrange("list:#{chat_id}").join("\n")
@@ -103,6 +103,9 @@ Telegram::Bot::Client.run(token) do |bot|
         REDIS.lpush("list:#{chat_id}", phrase)
       end
       bot.api.send_message(chat_id: chat_id, text: 'list updated')
+      REDIS.set("status:#{chat_id}", '0')
+    # если в хранилище нет ключа status
+    when nil
       REDIS.set("status:#{chat_id}", '0')
     end
   end
