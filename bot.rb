@@ -67,6 +67,9 @@ Telegram::Bot::Client.run(token) do |bot|
       when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
         REDIS.set("list:#{chat_id}", message.text)
         bot.api.send_message(chat_id: chat_id, text: 'added')
+      # запрет на обработку start как слова для перевода
+      when '/start'
+        bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
       else
         translation.input = message.text
         response = translation.translate
