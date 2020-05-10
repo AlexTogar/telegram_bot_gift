@@ -64,7 +64,7 @@ Telegram::Bot::Client.run(token) do |bot|
         list_message = REDIS.lrange("list:#{chat_id}").join("\n")
         bot.api.send_message(chat_id: chat_id, text: list_message)
       # фраза с переводом
-      when /[\w\,\?\!\.]{1,}-[\w\,\?\!\.]{1,}/
+      when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
         REDIS.set("list:#{chat_id}", message.text)
         bot.api.send_message(chat_id: chat_id, text: 'added')
       else
