@@ -41,8 +41,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when '/ask'
               all_phrases = REDIS.lrange("list:#{chat_id}", 0, -1)
               ask_message = ''
-              all_phrases.size >= 5 ? n = 5 : n = all_phrases.size
-              all_phrases.sample(n).each do |phrase|
+              answer_message = ''
+              all_phrases.sample(5).each do |phrase|
                 eng_part = phrase.split('-')[0]
                 ask_message += "#{eng_part}\n"
                 answer_message += "#{phrase}\n"
