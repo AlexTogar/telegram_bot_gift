@@ -40,7 +40,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.flushall
             # спросить 5 случайных фраз из списка
             when '/ask'
-              all_phrases = REDIS.lrange("list:#{chat_id}")
+              all_phrases = REDIS.lrange("list:#{chat_id}", 0, -1)
               ask_message = ''
               all_phrases.sample(5).each do |phrase|
                 eng_part = phrase.split('-')[0]
@@ -52,7 +52,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("variables:#{chat_id}:answer", answer_message)
             # очистить список
             when '/clear'
-              message_for_save = REDIS.lrange("list:#{chat_id}").join("\n")
+              message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               bot.api.send_message(chat_id: chat_id, text: message_for_save)
               REDIS.del("list:#{chat_id}")
             # обновить список
@@ -61,7 +61,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("status:#{chat_id}", '3')
             # вывести список
             when '/list'
-              list_message = REDIS.lrange("list:#{chat_id}").join("\n")
+              list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               bot.api.send_message(chat_id: chat_id, text: list_message)
             # фраза с переводом
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
