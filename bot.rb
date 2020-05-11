@@ -44,8 +44,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               ask_message = ''
               all_phrases.sample(5).each do |phrase|
                 eng_part = phrase.split('-')[0]
-                ask_message += "#{end_part}\n"
-                answer_message += phrase
+                ask_message += "#{eng_part}\n"
+                answer_message += "#{phrase}\n"
               end
               bot.api.send_message(chat_id: chat_id, text: ask_message)
               REDIS.set("status:#{chat_id}", '2')
