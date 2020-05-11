@@ -65,7 +65,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               bot.api.send_message(chat_id: chat_id, text: list_message)
             # фраза с переводом
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
-              REDIS.set("list:#{chat_id}", message.text)
+              REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
             # запрет на обработку start как слова для перевода
             when '/start'
