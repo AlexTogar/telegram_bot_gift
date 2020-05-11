@@ -39,7 +39,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.flushall
               REDIS.set("status:#{chat_id}", '0')
             # спросить 5 случайных фраз из списка
-            when /(\/ask)|(ask)/
+            when /(\/ask)/
               all_phrases = REDIS.lrange("list:#{chat_id}", 0, -1)
               ask_message = ''
               answer_message = ''
@@ -52,17 +52,17 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("status:#{chat_id}", '2')
               REDIS.set("variables:#{chat_id}:answer", answer_message)
             # очистить список
-            when /(\/clear)|(clear)/
+            when /(\/clear)/
               message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               message_for_save = "list is empty" if message_for_save == '' or message_for_save == nil
               bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n#{message_for_save}")
               REDIS.del("list:#{chat_id}")
             # обновить список
-            when /(\/update)|(update)/
+            when /(\/update)/
               bot.api.send_message(chat_id: chat_id, text: 'write your new list down below')
               REDIS.set("status:#{chat_id}", '3')
             # вывести список
-            when /(\/list)|(list)/
+            when /(\/list)/
               list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               if list_message != nil and list_message != '' then
                 bot.api.send_message(chat_id: chat_id, text: list_message)
@@ -73,10 +73,10 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
               REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
-            when /(\/answer)|(answer)|(\/a)|(a)/
+            when /(\/answer)|(\/a)/
               bot.api.send_message(chat_id: chat_id, text: "first you have to write '/ask'")
             # запрет на обработку start как слова для перевода
-            when /(\/start)|(start)/
+            when /(\/start)/
               bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
             else
               translation.input = message.text
@@ -101,7 +101,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 2 - ожидание ответа 'answer' для вывода ответа на заданные вопросы
           when '2'
             case message.text.downcase
-            when /(\/answer)|(\/a)|(a)|(answer)/
+            when /(\/answer)|(\/a)/
               bot.api.send_message(chat_id: chat_id, text: REDIS.get("variables:#{chat_id}:answer"))
               REDIS.set("status:#{chat_id}", '0')
             else
