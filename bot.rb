@@ -14,102 +14,138 @@ require 'net/https'
 require 'nokogiri'
 require 'telegram/bot'
 require 'redis'
-require_relative 'Translation'
 
-# Объект для перевода через Yandex translator
-translation = Translation::Translate.new
-token = ENV['bubu_token']
+token = ENV["bubu_token"]
 alex_chat_id = 479_039_553
+tanya_chat_id = 223_795_744
 
 # Подключение к redis
-uri = URI.parse(ENV['REDISTOGO_URL'])
-REDIS = Redis.new(host: uri.host, port: uri.port, password: uri.password)
+uri =  URI.parse(ENV["REDISTOGO_URL"])
+REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.password)
 
-# Прослушивание всех обращений
-Telegram::Bot::Client.run(token) do |bot|
-  bot.listen do |message|
-    # Получение чата
-    chat_id = message.chat.id
-    # Обработка обращения
-    case REDIS.get("status:#{chat_id}")
-    # status 0 - обычная работа
-    when '0'
-      # Список команд
-      case message.text.downcase
-      when '/flushall'
-        REDIS.flushall
-      # спросить 5 случайных фраз из списка
-      when '/ask'
-        all_phrases = REDIS.lrange("list:#{chat_id}")
-        ask_message = ''
-        all_phrases.sample(5).each do |phrase|
-          eng_part = phrase.split('-')[0]
-          ask_message += "#{end_part}\n"
-          answer_message += phrase
+    #Прослушивание всех обращений
+    Telegram::Bot::Client.run(token) do |bot|
+        bot.listen do |message|
+            #Получение чата
+            chat_id = message.chat.id
+            #Обработка обращения от Тани
+            if chat_id == tanya_chat_id or chat_id == alex_chat_id then
+                #Список команд
+                case message.text.downcase
+                when "/start"
+                    if REDIS.GET("started").to_i == 0 then
+                        REDIS.set("started", 1)
+                        #установка категорий по умолчинаю и в 0
+                        REDIS.set("mandatory", 0)
+                        REDIS.set("optional", 0)
+                        bot.api.send_message(chat_id: chat_id, text: "Начнем! укажи текущие значения денежных сумм на обязательные (x) и не обязательные вещи (y) c помощью команды 'обновить x y'")
+                        bot.api.send_message(chat_id: chat_id, text: "Кроме этого ты можешь добавлять и отнимать суммы из выбранной катеогории с помощью команд типа 'o +5000' или 'н -1000' (что значит добавить к обязат. 5000 и отнять от необязат. 1000 соответственно) ")
+                        bot.api.send_message(chat_id: chat_id, text: "Еще ты можешь обновить значения категорий отдельно с помощью команд типа 'обновить о 5000', что установит категории обязат. значение 5000")
+                        bot.api.send_message(chat_id: chat_id, text: "Получить текущие значения денег ты можешь с помощью команды /show, установить значения в 0 ты можешь с помощью команды /clear (используй символ / на нижней панели чата со мной (ботом)")
+                        bot.api.send_message(chat_id: chat_id, text: "Если ты хочешь, чтобы я напомнил команды, используй команду /info")
+                    else
+                        bot.api.send_message(chat_id: chat_id, text: "Работа уже начата! Ты можешь указать текущие значения денежных сумм для каждой категории с помощью соответствующих команд")
+                    end
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                when "/clear"
+                    REDIS.set("mandatory", 0)
+                    REDIS.set("optional", 0)
+                    bot.api.send_message(chat_id: chat_id, text: "Обе категории сброшены в 0, используйте /show, чтобы в этом убедиться")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+                when "/show"
+                    bot.api.send_message(chat_id: chat_id, text: "о: #{REDIS.get("mandatory")}\nн: #{REDIS.get("optional")}")
+
+
+                when "/info"
+                    bot.api.send_message(chat_id: chat_id, text: "обновить 100 200 - обновить значения суммы на обязательные траты (100р) и на не обязательные траты (200р)\n\nобновить о 100 - обновить значение категории о на 100\n\nобновить н 200 - обновить значение категории н на 200\n\nо +5000 - увеличить значение категории о на 5000р (доход)\n\nн -200 - уменьшить значение категории н на 200 (трата)\n\nОписание остальных команд можно посмотреть при нажатии на символ '/' внизу чата со мной (ботом)")
+
+                    
+                when "/flushall"
+                    REDIS.flushall
+
+                #обновить 5000 3000 - пример команды
+                when /обновить [0-9]{1,} [0-9]{1,}/
+                    mandatory = message.text.split(" ")[1].to_i
+                    optional = message.text.split(" ")[2].to_i
+                    #Добавление элемета в лист состояний (обязательное - не обязательное - дата)
+                    REDIS.set("mandatory", mandatory)
+                    REDIS.set("optional", optional)
+                    bot.api.send_message(chat_id: chat_id, text: "Значения обновлены")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                #обновить о 5000 - пример команды
+                when /обновить о [0-9]{1,}/
+                    mandatory = message.text.split(" ")[2].to_i
+                    REDIS.set("mandatory", mandatory)
+                    bot.api.send_message(chat_id: chat_id, text: "о установлена в #{mandatory}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                #обновить н 3000 - пример команды
+                when /обновить н [0-9]{1,}/
+                    optional = message.text.split(" ")[2].to_i
+                    REDIS.set("optional", optional)
+                    bot.api.send_message(chat_id: chat_id, text: "н установлена в #{optional}")
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                #о +5000 - пример команды
+                when /о [\+\-]{1}[0-9]{1,}/
+                    delta_mandatory = message.text.split(" ")[1][1..-1].to_i
+                    case message.text.split(" ")[1][0]
+                    when "+"
+                        REDIS.set("mandatory", REDIS.get("mandatory").to_i + delta_mandatory)
+                        bot.api.send_message(chat_id: chat_id, text: "о увеличен на #{delta_mandatory}р\nо: #{REDIS.get("mandatory")}")
+                    when "-"
+                        remains = REDIS.get("mandatory").to_i - delta_mandatory
+                        if remains >= 0 then
+                            REDIS.set("mandatory", REDIS.get("mandatory").to_i - delta_mandatory)
+                            bot.api.send_message(chat_id: chat_id, text: "о уменьшен на #{delta_mandatory}р\nо: #{REDIS.get("mandatory")}")
+                        else
+                            bot.api.send_message(chat_id: chat_id, text: "У тебя всего #{REDIS.get("mandatory")}р, не хватает #{remains.abs}р для совершения этой транзакции")
+                        end
+                    else
+                        bot.api.send_message(chat_id: chat_id, text: "Ошибка в запросе")
+                    end
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                #н -3000 - пример команды
+                when /н [\+\-]{1}[0-9]{1,}/
+                    delta_optional = message.text.split(" ")[1][1..-1].to_i
+                    case message.text.split(" ")[1][0]
+                    when "+"
+                        REDIS.set("optional", REDIS.get("optional").to_i + delta_optional)
+                        bot.api.send_message(chat_id: chat_id, text: "н увеличен на #{delta_optional}р\nн: #{REDIS.get("optional")}")
+                    when "-"
+                        remains = REDIS.get("optional").to_i - delta_optional
+                        if remains >= 0 then
+                            REDIS.set("optional", REDIS.get("optional").to_i - delta_optional)
+                            bot.api.send_message(chat_id: chat_id, text: "н уменьшен на #{delta_optional}р\nн: #{REDIS.get("optional")}")
+                        else
+                            bot.api.send_message(chat_id: chat_id, text: "у тебя всего #{REDIS.get("optional")}р, не хватает #{remains.abs}р для совершения этой транзакции")
+                        end
+                    else
+                        bot.api.send_message(chat_id: chat_id, text: "ошибка в запросе")
+                    end
+                    REDIS.rpush("state_list", "#{REDIS.get("mandatory")} #{REDIS.get("optional")} #{Date.today.strftime("%d-%m-%y")}")
+
+
+                else
+                    bot.api.send_message(chat_id: chat_id, text: "Не понятно, проверь запрос, в нем что-то не так")
+                end
+            else
+                #Обработка обращения посторонних людей
+                first_name = message.forward_from.first_name
+                last_name = message.forward_from.last_name
+                bot.api.send_message(
+                    chat_id: alex_chat_id, 
+                    text: "Пользователь #{first_name} #{last_name}, chat_id: #{message.chat.id} написал боту Bubu: #{message.text}")
+                    REDIS.incr("messages_from_unknown")
+            end
         end
-        bot.api.send_message(chat_id: chat_id, text: ask_message)
-        REDIS.set("status:#{chat_id}", '2')
-        REDIS.set("variables:#{chat_id}:answer", answer_message)
-      # очистить список
-      when '/clear'
-        message_for_save = REDIS.lrange("list:#{chat_id}").join("\n")
-        bot.api.send_message(chat_id: chat_id, text: message_for_save)
-        REDIS.del("list:#{chat_id}")
-      # обновить список
-      when '/update'
-        bot.api.send_message(chat_id: chat_id, text: 'write your new list down below')
-        REDIS.set("status:#{chat_id}", '3')
-      # вывести список
-      when '/list'
-        list_message = REDIS.lrange("list:#{chat_id}").join("\n")
-        bot.api.send_message(chat_id: chat_id, text: list_message)
-      # фраза с переводом
-      when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
-        REDIS.set("list:#{chat_id}", message.text)
-        bot.api.send_message(chat_id: chat_id, text: 'added')
-      # запрет на обработку start как слова для перевода
-      when '/start'
-        bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
-      else
-        translation.input = message.text
-        response = translation.translate
-        bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
-        REDIS.set("status:#{chat_id}", '1')
-        REDIS.set("variables:#{chat_id}:current_response", response)
-      end
-    # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы
-    when '1'
-      case message.text.downcase
-      when 'yes'
-        REDIS.lpush("list:#{chat_id}", REDIS.get("variables:#{chat_id}:curret_response"))
-        bot.api.send_message(chat_id: chat_id, text: 'added')
-        REDIS.set("status:#{chat_id}", '0')
-      when 'no'
-        bot.api.send_message(chat_id: chat_id, text: 'forgotten')
-        REDIS.set("status:#{chat_id}", '0')
-      else
-        bot.api.send_message(chat_id: chat_id, text: "idk what you want, write 'yes' or 'no'")
-      end
-    # status 2 - ожидание ответа 'answer' для вывода ответа на заданные вопросы
-    when '2'
-      case message.text.downcase
-      when 'answer'
-        bot.api.send_message(chat_id: chat_id, text: REDIS.get("variables:#{chat_id}:answer"))
-        REDIS.set("status:#{chat_id}", '0')
-      else
-        bot.api.send_message(chat_id: chat_id, text: "idk what you want (write 'answer')")
-      end
-    # status 3 - ожидание списка слов с переводом для заполнения листа сначала
-    when '3'
-      update_list = REDIS.get("variables:#{chat_id}:update_list").split("\n")
-      update_list.each do |phrase|
-        REDIS.lpush("list:#{chat_id}", phrase)
-      end
-      bot.api.send_message(chat_id: chat_id, text: 'list updated')
-      REDIS.set("status:#{chat_id}", '0')
-    # если в хранилище нет ключа status
-    when nil
-      REDIS.set("status:#{chat_id}", '0')
     end
-  end
-end
