@@ -14,10 +14,10 @@ require 'net/https'
 require 'nokogiri'
 require 'telegram/bot'
 require 'redis'
-require_relative 'Translation'
+#require_relative 'Translation'
 
 # Объект для перевода через Yandex translator
-translation = Translation::Translate.new
+#translation = Translation::Translate.new
 token = ENV['bubu_token']
 alex_chat_id = 479_039_553
 
@@ -71,8 +71,9 @@ Telegram::Bot::Client.run(token) do |bot|
       when '/start'
         bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
       else
-        translation.input = message.text
-        response = translation.translate
+        #translation.input = message.text
+        #response = translation.translate
+        response = "alal"
         bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
         REDIS.set("status:#{chat_id}", '1')
         REDIS.set("variables:#{chat_id}:current_response", response)
