@@ -39,7 +39,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.flushall
               REDIS.set("status:#{chat_id}", '0')
             # спросить 5 случайных фраз из списка
-            when '/ask'
+            when /(\/ask)|(ask)/
               all_phrases = REDIS.lrange("list:#{chat_id}", 0, -1)
               ask_message = ''
               answer_message = ''
@@ -52,17 +52,17 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("status:#{chat_id}", '2')
               REDIS.set("variables:#{chat_id}:answer", answer_message)
             # очистить список
-            when '/clear'
+            when /(\/clear)|(clear)/
               message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               message_for_save = "list is empty" if message_for_save == '' or message_for_save == nil
               bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n#{message_for_save}")
               REDIS.del("list:#{chat_id}")
             # обновить список
-            when '/update'
+            when /(\/update)|(update)/
               bot.api.send_message(chat_id: chat_id, text: 'write your new list down below')
               REDIS.set("status:#{chat_id}", '3')
             # вывести список
-            when '/list'
+            when /(\/list)|(list)/
               list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               if list_message != nil and list_message != '' then
                 bot.api.send_message(chat_id: chat_id, text: list_message)
@@ -73,10 +73,10 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
               REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
-            when '/answer'
+            when /(\/answer)|(answer)|(\/a)|(a)/
               bot.api.send_message(chat_id: chat_id, text: "first you have to write '/ask'")
             # запрет на обработку start как слова для перевода
-            when '/start'
+            when /(\/start)|(start)/
               bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
             else
               translation.input = message.text
@@ -88,11 +88,11 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы
           when '1'
             case message.text.downcase
-            when /y|(yes)/
+            when /y|(yes)|(\/yes)/
               REDIS.lpush("list:#{chat_id}", REDIS.get("variables:#{chat_id}:current_response"))
               bot.api.send_message(chat_id: chat_id, text: 'added')
               REDIS.set("status:#{chat_id}", '0')
-            when /n|(no)/
+            when /n|(no)|(\/no)/
               bot.api.send_message(chat_id: chat_id, text: 'forgotten')
               REDIS.set("status:#{chat_id}", '0')
             else
@@ -101,7 +101,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 2 - ожидание ответа 'answer' для вывода ответа на заданные вопросы
           when '2'
             case message.text.downcase
-            when /(\/answer)|(\/a)|(a)/
+            when /(\/answer)|(\/a)|(a)|(answer)/
               bot.api.send_message(chat_id: chat_id, text: REDIS.get("variables:#{chat_id}:answer"))
               REDIS.set("status:#{chat_id}", '0')
             else
@@ -110,6 +110,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 3 - ожидание списка слов с переводом для заполнения листа сначала
           when '3'
             update_list = message.text.split("\n")
+            REDIS.del("list:#{chat_id}")
             REDIS.lpush("list:#{chat_id}", update_list)
             bot.api.send_message(chat_id: chat_id, text: 'list updated')
             REDIS.set("status:#{chat_id}", '0')
