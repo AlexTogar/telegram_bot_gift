@@ -78,7 +78,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               response = translation.translate
               bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
               REDIS.set("status:#{chat_id}", '1')
-              REDIS.set("variables:#{chat_id}:current_response", response)
+              REDIS.set("variables:#{chat_id}:current_response", "#{message.text}-#{response}")
             end
           # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы
           when '1'
