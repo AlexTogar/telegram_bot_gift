@@ -18,8 +18,7 @@ require_relative 'Translation'
 
 translation = Translation::Translate.new
 token = ENV["bubu_token"]
-alex_chat_id = 479_039_553
-tanya_chat_id = 223_795_744
+alex_chat_id = 479039553
 
 # Подключение к redis
 uri =  URI.parse(ENV["REDISTOGO_URL"])
@@ -85,7 +84,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           when '1'
             case message.text.downcase
             when 'yes'
-              REDIS.lpush("list:#{chat_id}", REDIS.get("variables:#{chat_id}:curret_response"))
+              REDIS.lpush("list:#{chat_id}", REDIS.get("variables:#{chat_id}:current_response"))
               bot.api.send_message(chat_id: chat_id, text: 'added')
               REDIS.set("status:#{chat_id}", '0')
             when 'no'
