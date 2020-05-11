@@ -55,7 +55,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when '/clear'
               message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
               message_for_save = "list is empty" if message_for_save == '' or message_for_save == nil
-              bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n #{message_for_save}")
+              bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n#{message_for_save}")
               REDIS.del("list:#{chat_id}")
             # обновить список
             when '/update'
@@ -73,6 +73,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
               REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
+            when '/answer'
+              bot.api.send_message(chat_id: chat_id, text: "first you have to write '/ask'")
             # запрет на обработку start как слова для перевода
             when '/start'
               bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
@@ -86,11 +88,11 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы
           when '1'
             case message.text.downcase
-            when 'yes'
+            when /y|(yes)/
               REDIS.lpush("list:#{chat_id}", REDIS.get("variables:#{chat_id}:current_response"))
               bot.api.send_message(chat_id: chat_id, text: 'added')
               REDIS.set("status:#{chat_id}", '0')
-            when 'no'
+            when /n|(no)/
               bot.api.send_message(chat_id: chat_id, text: 'forgotten')
               REDIS.set("status:#{chat_id}", '0')
             else
@@ -99,18 +101,16 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 2 - ожидание ответа 'answer' для вывода ответа на заданные вопросы
           when '2'
             case message.text.downcase
-            when 'answer'
+            when /(\/answer)|(\/a)|(a)/
               bot.api.send_message(chat_id: chat_id, text: REDIS.get("variables:#{chat_id}:answer"))
               REDIS.set("status:#{chat_id}", '0')
             else
-              bot.api.send_message(chat_id: chat_id, text: "idk what you want (write 'answer')")
+              bot.api.send_message(chat_id: chat_id, text: "idk what you want (write '/answer')")
             end
           # status 3 - ожидание списка слов с переводом для заполнения листа сначала
           when '3'
-            update_list = REDIS.get("variables:#{chat_id}:update_list").split("\n")
-            update_list.each do |phrase|
-              REDIS.lpush("list:#{chat_id}", phrase)
-            end
+            update_list = message.text.split("\n")
+            REDIS.lpush("list:#{chat_id}", update_list)
             bot.api.send_message(chat_id: chat_id, text: 'list updated')
             REDIS.set("status:#{chat_id}", '0')
           # если в хранилище нет ключа status
