@@ -54,7 +54,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             # очистить список
             when '/clear'
               message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
-              bot.api.send_message(chat_id: chat_id, text: message_for_save)
+              message_for_save = "list is empty" if message_for_save == '' or message_for_save == nil
+              bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n #{message_for_save}")
               REDIS.del("list:#{chat_id}")
             # обновить список
             when '/update'
