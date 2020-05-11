@@ -61,7 +61,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             # вывести список
             when '/list'
               list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
-              if list_message == nil then
+              if list_message != nil then
                 bot.api.send_message(chat_id: chat_id, text: list_message)
               else
                 bot.api.send_message(chat_id: chat_id, text: "list is empty")
