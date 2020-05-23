@@ -93,13 +93,23 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             # запрет на обработку start как слова для перевода
             when /(\/start)/
               bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
+            # фраза без перевода
             else
               translation.input = message.text
-              #translate_static или translate_neural
-              response = translation.translate_neural
-              bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
-              REDIS.set("status:#{chat_id}", '1')
-              REDIS.set("variables:#{chat_id}:current_response", "#{message.text} - #{response}")
+              list = REDIS.lrange("list:#{chat_id}", 0, -1).map{|str| [str.split(" - ")[0], str.split(" - ")[1]]}
+              eng_part_list = list.map{|array| array[0]}
+              #если запрашиваемое слово уже есть в списке, то сообщить это и дать перевод
+              if eng_part_list.include? message.text
+                #found_phrase имеет структуру ["phrase", "фраза"]
+                found_phrase = list.select{|array| array[0] == message.text}[0]
+                bot.api.send_message(chat_id: chat_id, text: "#{found_phrase[1]} - exists already")
+              else
+                #translate_static или translate_neural
+                response = translation.translate_neural
+                bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
+                REDIS.set("status:#{chat_id}", '1')
+                REDIS.set("variables:#{chat_id}:current_response", "#{message.text} - #{response}")
+              end
             end
           # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы
           when '1'
