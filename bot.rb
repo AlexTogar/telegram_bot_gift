@@ -80,7 +80,8 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               bot.api.send_message(chat_id: chat_id, text: "i'm ready to work")
             else
               translation.input = message.text
-              response = translation.translate
+              #translate_static или translate_neural
+              response = translation.translate_neural
               bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
               REDIS.set("status:#{chat_id}", '1')
               REDIS.set("variables:#{chat_id}:current_response", "#{message.text} - #{response}")
