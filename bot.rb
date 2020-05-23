@@ -64,11 +64,26 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             # вывести список
             when /(\/list)/
               list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
-              if list_message != nil and list_message != '' then
-                bot.api.send_message(chat_id: chat_id, text: list_message)
+              #если сообщение слишком длинное (максимум - 4096)
+              if list_message.size > 4000
+                list_message_array = list_message.split("\n")
+                message_num = (list_message_array.size/10).to_i + 1
+                for i in (1..message_num) do
+                  message = list_message_array[(i-1)*10..i*10-1].join("\n")
+                  if message != nil and message != '' then
+                    bot.api.send_message(chat_id: chat_id, text: message)
+                  else
+                    bot.api.send_message(chat_id: chat_id, text: "error")
+                  end
+                end
               else
-                bot.api.send_message(chat_id: chat_id, text: "list is empty")
+                if list_message != nil and list_message != '' then
+                  bot.api.send_message(chat_id: chat_id, text: list_message)
+                else
+                  bot.api.send_message(chat_id: chat_id, text: "list is empty")
+                end
               end
+
             # фраза с переводом
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
               REDIS.lpush("list:#{chat_id}", message.text)
