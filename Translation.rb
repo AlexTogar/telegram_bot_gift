@@ -27,8 +27,8 @@ module Translation
 
       #заполнение констант
       uri = URI.parse("https://translate.api.cloud.yandex.net/translate/v2/translate")
-      iam_token = ENV("IAM_TOKEN")
-      folder_id = ENV("FOLDER_ID")
+      iam_token = ENV["IAM_TOKEN"]
+      folder_id = ENV["FOLDER_ID"]
 
       header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{iam_token}"}
       data = {folder_id: "#{folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
