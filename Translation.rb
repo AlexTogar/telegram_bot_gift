@@ -6,11 +6,13 @@ module Translation
   require 'json'
 
   class Translate
-    attr_accessor :input, :yandex_key
+    attr_accessor :input, :yandex_key, :iam_token, :folder_id
 
-    def initialize(key: 'trnsl.1.1.20181019T100255Z.a1f5945c9e725938.33d1d873f6a0cb522f363ba06133bf8f0c32e678', input: '2+2')
+    def initialize(key: 'trnsl.1.1.20181019T100255Z.a1f5945c9e725938.33d1d873f6a0cb522f363ba06133bf8f0c32e678', input: '2+2', iam_token: ENV["IAM_TOKEN"], folder_id: ENV["FOLDER_ID"])
       @yandex_key = key
       @input = input
+      @iam_token = iam_token
+      @folder_id = folder_id
     end
 
     def translate_static
@@ -23,15 +25,13 @@ module Translation
 
     def translate_neural
       # Инициализация результата
-      text = "initial value"
+      json_str = "initial value"
 
       #заполнение констант
       uri = URI.parse("https://translate.api.cloud.yandex.net/translate/v2/translate")
-      iam_token = ENV["IAM_TOKEN"]
-      folder_id = ENV["FOLDER_ID"]
 
-      header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{iam_token}"}
-      data = {folder_id: "#{folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
+      header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{@iam_token}"}
+      data = {folder_id: "#{@folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
 
       # Создание запроса
       http = Net::HTTP.new(uri.host, uri.port)
@@ -46,12 +46,14 @@ module Translation
       if response.kind_of? Net::HTTPSuccess
           json_str = response.body #string
       else
-          # Обновление IAM_TOKEN
+          # Обновление IAM_TOKEN и сохранение в переменную окружения
+          new_iam_token = get_new_iam_token
+          ENV["IAM_TOKEN"] = new_iam_token
+          @iam_token = new_iam_token
 
-    
           # Создание нового запроса с одновленным IAM_TOKEN
-          header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{iam_token}"}
-          data = {folder_id: "#{folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
+          header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{@iam_token}"}
+          data = {folder_id: "#{@folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
           http = Net::HTTP.new(uri.host, uri.port)
           request = Net::HTTP::Post.new(uri.request_uri, header)
           request.body = data.to_json
@@ -59,7 +61,11 @@ module Translation
       
           # Отправка запроса
           response = http.request(request)
-          json_str = response.body
+          if response.kind_of? Net::HTTPSuccess
+            json_str = response.body
+          else
+            puts 'error after iam updating'
+          end
       end
 
       # Перевод первой из отправленных строчек
@@ -69,3 +75,24 @@ module Translation
     end
   end
   end
+
+  def get_new_iam_token
+    #curl -d "{\"yandexPassportOauthToken\":\"<OAuth-token>\"}" "https://iam.api.cloud.yandex.net/iam/v1/tokens"
+    uri = URI.parse("https://iam.api.cloud.yandex.net/iam/v1/tokens")
+    data = {yandexPassportOauthToken: ENV["OAUTH_TOKEN"]}
+    data = {yandexPassportOauthToken: "AgAAAAAdTi3LAATuwYoimoAMMEd4pM-DHZFe9GA"}
+
+    # Создание запроса
+    http = Net::HTTP.new(uri.host, uri.port)
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request.body = data.to_json
+    http.use_ssl = true
+
+    # Отправка запроса
+    response = http.request(request)
+    new_token = JSON.parse(response.body)["iamToken"]
+    return new_token
+  end
+
+
+  
