@@ -108,7 +108,12 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
                 response = translation.translate_neural
                 bot.api.send_message(chat_id: chat_id, text: "#{response} - add it into list?")
                 REDIS.set("status:#{chat_id}", '1')
-                REDIS.set("variables:#{chat_id}:current_response", "#{message.text} - #{response}")
+                #если переведенное выражение на английском (содрежит хотя бы один англ. символ)
+                if /[a-zA-Z]+/.match(response)
+                  REDIS.set("variables:#{chat_id}:current_response", "#{response} - #{message.text}")
+                else
+                  REDIS.set("variables:#{chat_id}:current_response", "#{message.text} - #{response}")
+                end
               end
             end
           # status 1 - ожидание ответа 'Yes' или 'No' для сохранения или удаления фразы

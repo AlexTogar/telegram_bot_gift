@@ -26,12 +26,16 @@ module Translation
     def translate_neural
       # Инициализация результата
       json_str = "initial value"
-
+      targetLanguageCode = "ru"
+      #если в input содержит хотя бы один русский символ, поменять язык перевода на английский
+      if /[а-яА-Я]+/.match(@input)
+        targetLanguageCode = "en"
+      end
       #заполнение констант
       uri = URI.parse("https://translate.api.cloud.yandex.net/translate/v2/translate")
 
       header = {'Content-Type': 'application/json', 'Authorization': "Bearer #{@iam_token}"}
-      data = {folder_id: "#{@folder_id}",texts:["#{@input}"],targetLanguageCode:"ru"}
+      data = {folder_id: "#{@folder_id}",texts:["#{@input}"],targetLanguageCode:targetLanguageCode}
 
       # Создание запроса
       http = Net::HTTP.new(uri.host, uri.port)
