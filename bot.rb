@@ -79,7 +79,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.del("list:#{chat_id}")
             # обновить список
             when /(\/update)/
-              bot.api.send_message(chat_id: chat_id, text: 'write your new list down below (or send "no")')
+              bot.api.send_message(chat_id: chat_id, text: "write your new list down below (or send 'no')\nformat:<eng part> - <rus part>")
               REDIS.set("status:#{chat_id}", '3')
             # вывести список
             when /(\/list)/
