@@ -53,13 +53,33 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("variables:#{chat_id}:answer", answer_message)
             # очистить список
             when /(\/clear)/
-              message_for_save = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
-              message_for_save = "list is empty" if message_for_save == '' or message_for_save == nil
-              bot.api.send_message(chat_id: chat_id, text: "list down below has been removed: \n#{message_for_save}")
+              # вывод всего списка перед удалением
+              list_message = REDIS.lrange("list:#{chat_id}", 0, -1).join("\n")
+              #если сообщение слишком длинное (максимум - 4096)
+              if list_message.size > 4000
+                list_message_array = list_message.split("\n")
+                phrases_num = 50
+                message_num = (list_message_array.size/phrases_num).to_i + 1
+                for i in (1..message_num) do
+                  message = list_message_array[(i-1)*phrases_num..i*phrases_num-1].join("\n")
+                  if message != nil and message != '' then
+                    bot.api.send_message(chat_id: chat_id, text: message)
+                  else
+                    bot.api.send_message(chat_id: chat_id, text: "error")
+                  end
+                end
+              else
+                if list_message != nil and list_message != '' then
+                  bot.api.send_message(chat_id: chat_id, text: list_message)
+                else
+                  bot.api.send_message(chat_id: chat_id, text: "list is empty")
+                end
+              end
+              #конец вывода списка перед удалением
               REDIS.del("list:#{chat_id}")
             # обновить список
             when /(\/update)/
-              bot.api.send_message(chat_id: chat_id, text: 'write your new list down below')
+              bot.api.send_message(chat_id: chat_id, text: 'write your new list down below (or send "no")')
               REDIS.set("status:#{chat_id}", '3')
             # вывести список
             when /(\/list)/
@@ -140,11 +160,16 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             end
           # status 3 - ожидание списка слов с переводом для заполнения листа сначала
           when '3'
-            update_list = message.text.split("\n")
-            REDIS.del("list:#{chat_id}")
-            REDIS.lpush("list:#{chat_id}", update_list)
-            bot.api.send_message(chat_id: chat_id, text: 'list updated')
-            REDIS.set("status:#{chat_id}", '0')
+            if message.text != "no"
+              update_list = message.text.split("\n")
+              REDIS.del("list:#{chat_id}")
+              REDIS.lpush("list:#{chat_id}", update_list)
+              bot.api.send_message(chat_id: chat_id, text: 'list updated')
+              REDIS.set("status:#{chat_id}", '0')
+            else
+              bot.api.send_message(chat_id: chat_id, text: 'operation interrupted')
+              REDIS.set("status:#{chat_id}", '0')
+            end
           # если в хранилище нет ключа status
           when nil
             REDIS.set("status:#{chat_id}", '0')
