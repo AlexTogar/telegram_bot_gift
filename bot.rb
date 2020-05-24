@@ -87,9 +87,10 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               #если сообщение слишком длинное (максимум - 4096)
               if list_message.size > 4000
                 list_message_array = list_message.split("\n")
-                message_num = (list_message_array.size/10).to_i + 1
+                phrases_num = 50
+                message_num = (list_message_array.size/phrases_num).to_i + 1
                 for i in (1..message_num) do
-                  message = list_message_array[(i-1)*10..i*10-1].join("\n")
+                  message = list_message_array[(i-1)*phrases_num..i*phrases_num-1].join("\n")
                   if message != nil and message != '' then
                     bot.api.send_message(chat_id: chat_id, text: message)
                   else
