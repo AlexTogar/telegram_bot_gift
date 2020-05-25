@@ -109,6 +109,10 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
             when /[\w\,\?\!\.\ ]{1,}-[\w\,\?\!\.\ ]{1,}/
               REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
+            # отменить последнее добавление в список
+            when /(\/revert)|(\/r)/
+              removed_item = REDIS.lpop("list:#{chat_id}")
+              bot.api.send_message(chat_id: chat_id, text: "last item has been removed: #{removed_item}")
             when /(\/answer)|(\/a)/
               bot.api.send_message(chat_id: chat_id, text: "first you have to write '/ask'")
             # запрет на обработку start как слова для перевода
