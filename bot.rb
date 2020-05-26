@@ -40,14 +40,17 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.set("status:#{chat_id}", '0')
             # спросить 5 случайных фраз из списка
             when /(\/ask)/
+              #direction = 0 или 1 с равной вероятностью - определят язык вопроса
+              direction = rand.round
               all_phrases = REDIS.lrange("list:#{chat_id}", 0, -1)
               ask_message = ''
               answer_message = ''
               all_phrases.sample(5).each do |phrase|
-                eng_part = phrase.split('-')[0]
-                ask_message += "#{eng_part}\n"
+                eng_part, rus_part = phrase.split('-')[0], phrase.split('-')[1]
+                direction == 0? ask_message += "#{eng_part}\n" : ask_message += "#{rus_part}\n"
                 answer_message += "#{phrase}\n"
               end
+              
               bot.api.send_message(chat_id: chat_id, text: ask_message)
               REDIS.set("status:#{chat_id}", '2')
               REDIS.set("variables:#{chat_id}:answer", answer_message)
@@ -110,10 +113,10 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
               REDIS.lpush("list:#{chat_id}", message.text)
               bot.api.send_message(chat_id: chat_id, text: 'added')
             # отменить последнее добавление в список
-            when /(\/revert)|(\/r)/
+            when /(\/revert)/
               removed_item = REDIS.lpop("list:#{chat_id}")
               bot.api.send_message(chat_id: chat_id, text: "last item has been removed: #{removed_item}")
-            when /(\/answer)|(\/a)/
+            when /(\/answer)/
               bot.api.send_message(chat_id: chat_id, text: "first you have to write '/ask'")
             # запрет на обработку start как слова для перевода
             when /(\/start)/
@@ -157,7 +160,7 @@ REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.passwor
           # status 2 - ожидание ответа 'answer' для вывода ответа на заданные вопросы
           when '2'
             case message.text.downcase
-            when /(\/answer)|(\/a)/
+            when /(\/answer)/
               bot.api.send_message(chat_id: chat_id, text: REDIS.get("variables:#{chat_id}:answer"))
               REDIS.set("status:#{chat_id}", '0')
             else
