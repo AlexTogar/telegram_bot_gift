@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'activesupport', '~> 5.0'
+gem 'activesupport', '~> 6.1'
 gem 'nokogiri', '~> 1.10', '>= 1.10.4'
 gem 'redis', '~> 3.3', '>= 3.3.1'
 gem 'telegram-bot-ruby'
